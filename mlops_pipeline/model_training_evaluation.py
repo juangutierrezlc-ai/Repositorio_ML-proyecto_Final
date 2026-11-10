@@ -338,9 +338,46 @@ def entrenar_y_evaluar():
     tabla = seleccionar_mejor_modelo(pd.DataFrame(filas).set_index("modelo"))
     mejor_nombre = tabla.index[0]
     mejor_modelo = resultados[mejor_nombre]["modelo"]
-
-
- #tabla resumen de resultados
-
-    entrenar_y_evaluar() 
-    
+ 
+    # tabla resumen de resultados
+    tabla.round(4).to_csv(DIR_RESULTADOS / "tabla_resumen.csv", encoding="utf-8-sig")
+    columnas_resumen = ["test_roc_auc", "test_pr_auc_no_pago", "test_balanced_accuracy",
+                        "test_recall_no_pago", "test_precision_no_pago", "cv_roc_auc_media",
+                        "cv_roc_auc_std", "sobreajuste_auc", "tiempo_entrenamiento_s",
+                        "tiempo_prediccion_ms_x1000", "score_performance", "score_consistency",
+                        "score_scalability", "score_final"]
+ 
+    # graficos comparativos
+    graficar_comparacion_metricas(tabla, DIR_RESULTADOS / "comparacion_metricas.png")
+    graficar_curvas(resultados, X_test, y_test, DIR_RESULTADOS / "curvas_roc_pr.png")
+    graficar_matrices_confusion(resultados, X_test, y_test, DIR_RESULTADOS / "matrices_confusion.png")
+    graficar_consistencia(resultados, DIR_RESULTADOS / "consistencia_cv.png")
+    graficar_escalabilidad(tabla, DIR_RESULTADOS / "escalabilidad.png")
+    graficar_puntajes(tabla, DIR_RESULTADOS / "puntajes_seleccion.png")
+ 
+    # guardar el mejor modelo y su metadata (los usan model_deploy.py y model_monitoring.py)
+    joblib.dump(mejor_modelo, DIR_MODELOS / "mejor_modelo.joblib")
+    metadata = {
+        "modelo": mejor_nombre,
+        "mejores_parametros": resultados[mejor_nombre]["mejores_parametros"],
+        "umbral_decision": float(mejor_modelo.best_threshold_),
+        "metricas_test": {k.replace("test_", ""): round(float(v), 4)
+                          for k, v in tabla.loc[mejor_nombre].items() if k.startswith("test_")},
+        "pesos_seleccion": PESOS,
+        "fecha_entrenamiento": pd.Timestamp.now().isoformat(timespec="seconds"),
+        "registros_entrenamiento": len(X_train),
+    }
+    (DIR_MODELOS / "metadata_mejor_modelo.json").write_text(
+        json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+ 
+    print("\n=== Tabla resumen de evaluacion ===")
+    print(tabla[columnas_resumen].round(3).to_string())
+    print(f"\nMejor modelo: {mejor_nombre} (score final = {tabla.loc[mejor_nombre, 'score_final']:.3f})")
+    print(f"Guardado en: {DIR_MODELOS / 'mejor_modelo.joblib'}")
+    print(f"Graficos y tabla en: {DIR_RESULTADOS}")
+    return mejor_modelo, tabla
+ 
+ 
+if __name__ == "__main__":
+    entrenar_y_evaluar()
