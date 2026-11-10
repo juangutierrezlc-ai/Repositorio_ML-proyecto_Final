@@ -1,0 +1,30 @@
+﻿periodo,nivel,mensaje,recomendacion
+2024-11,Alta,Drift alto en: promedio_ingresos_datacredito,"Revisar el origen de estas variables (cambios en captura, en la política comercial o en el perfil de clientes)."
+2024-12,Alta,"Drift alto en: promedio_ingresos_datacredito, tendencia_ingresos","Revisar el origen de estas variables (cambios en captura, en la política comercial o en el perfil de clientes)."
+2025-01,Media,"Drift moderado en: plazo_meses, promedio_ingresos_datacredito, tipo_credito",Seguir de cerca estas variables en los próximos periodos.
+2025-02,Media,"Drift moderado en: promedio_ingresos_datacredito, tendencia_ingresos",Seguir de cerca estas variables en los próximos periodos.
+2025-03,Media,Drift moderado en: promedio_ingresos_datacredito,Seguir de cerca estas variables en los próximos periodos.
+2025-04,Media,Drift moderado en: promedio_ingresos_datacredito,Seguir de cerca estas variables en los próximos periodos.
+2025-05,Media,"Drift moderado en: plazo_meses, salario_cliente, total_otros_prestamos, promedio_ingresos_datacredito, tipo_credito, tipo_laboral",Seguir de cerca estas variables en los próximos periodos.
+2025-06,Alta,"Drift alto en: plazo_meses, promedio_ingresos_datacredito","Revisar el origen de estas variables (cambios en captura, en la política comercial o en el perfil de clientes)."
+2025-07,Alta,"Drift alto en: plazo_meses, promedio_ingresos_datacredito","Revisar el origen de estas variables (cambios en captura, en la política comercial o en el perfil de clientes)."
+2025-08,Alta,"Drift alto en: plazo_meses, promedio_ingresos_datacredito","Revisar el origen de estas variables (cambios en captura, en la política comercial o en el perfil de clientes)."
+2025-09,Alta,"Drift alto en: plazo_meses, promedio_ingresos_datacredito","Revisar el origen de estas variables (cambios en captura, en la política comercial o en el perfil de clientes)."
+2025-10,Alta,"Drift alto en: plazo_meses, total_otros_prestamos, promedio_ingresos_datacredito","Revisar el origen de estas variables (cambios en captura, en la política comercial o en el perfil de clientes)."
+2025-11,Alta,Drift alto en: promedio_ingresos_datacredito,"Revisar el origen de estas variables (cambios en captura, en la política comercial o en el perfil de clientes)."
+2025-12,Alta,"Drift alto en: capital_prestado, plazo_meses, total_otros_prestamos, promedio_ingresos_datacredito","Revisar el origen de estas variables (cambios en captura, en la política comercial o en el perfil de clientes)."
+2026-01,Alta,"Drift alto en: capital_prestado, plazo_meses, total_otros_prestamos, promedio_ingresos_datacredito","Revisar el origen de estas variables (cambios en captura, en la política comercial o en el perfil de clientes)."
+Tendencia,Media,El drift de capital_prestado viene aumentando periodo a periodo.,Revisar la variable antes de que supere el umbral crítico.
+2025-12,Media,Cambio abrupto en capital_prestado.,Verificar si hubo un cambio en la fuente de datos o en el negocio.
+2026-01,Media,Cambio abrupto en cuota_pactada.,Verificar si hubo un cambio en la fuente de datos o en el negocio.
+Tendencia,Media,El drift de edad_cliente viene aumentando periodo a periodo.,Revisar la variable antes de que supere el umbral crítico.
+Tendencia,Media,El drift de huella_consulta viene aumentando periodo a periodo.,Revisar la variable antes de que supere el umbral crítico.
+Tendencia,Media,El drift de plazo_meses viene aumentando periodo a periodo.,Revisar la variable antes de que supere el umbral crítico.
+"2025-01, 2025-05, 2025-12",Media,Cambio abrupto en plazo_meses.,Verificar si hubo un cambio en la fuente de datos o en el negocio.
+2026-01,Media,Cambio abrupto en prob_no_pago.,Verificar si hubo un cambio en la fuente de datos o en el negocio.
+"2025-06, 2025-11, 2026-01",Media,Cambio abrupto en promedio_ingresos_datacredito.,Verificar si hubo un cambio en la fuente de datos o en el negocio.
+2025-08,Media,Cambio abrupto en salario_cliente.,Verificar si hubo un cambio en la fuente de datos o en el negocio.
+2025-05,Media,Cambio abrupto en tipo_credito.,Verificar si hubo un cambio en la fuente de datos o en el negocio.
+2025-11,Media,Cambio abrupto en tipo_laboral.,Verificar si hubo un cambio en la fuente de datos o en el negocio.
+Tendencia,Media,El drift de total_otros_prestamos viene aumentando periodo a periodo.,Revisar la variable antes de que supere el umbral crítico.
+2025-08,Media,Cambio abrupto en total_otros_prestamos.,Verificar si hubo un cambio en la fuente de datos o en el negocio.
