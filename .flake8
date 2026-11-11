@@ -1,0 +1,5 @@
+[flake8]
+max-line-length = 120
+exclude = venv,.venv,.git,__pycache__,.ipynb_checkpoints,build,dist
+per-file-ignores =
+    mlops_pipeline/model_training_evaluation.py: E402

@@ -3,17 +3,17 @@ ft_engineering.py
 =================
 
 Primera componente del flujo de creación de modelos.
- 
+
 Toma los datos crudos, aplica la limpieza y los atributos derivados definidos en el
 EDA (secciones 4, 6, 11 y 12 de eda_analisis.ipynb), construye el ColumnTransformer
 y devuelve los conjuntos de entrenamiento y evaluación.
 
 
 Uso desde otro script:
- 
+
     from ft_eng import ft_engineering
     X_train, X_test, y_train, y_test, preprocesador = ft_engineering()
- 
+
 El preprocesador se devuelve SIN ajustar: en model_training_evaluation.py se une con
 cada modelo en un solo Pipeline, de modo que se ajusta solo con los datos de
 entrenamiento (sin fuga de información) y queda listo para guardarse y desplegarse.
@@ -22,7 +22,7 @@ entrenamiento (sin fuga de información) y queda listo para guardarse y desplega
 """
 
 from pathlib import Path
- 
+
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, OneToOneFeatureMixin, TransformerMixin
@@ -58,9 +58,7 @@ VARIABLES_MONTO = [
 CATEGORIAS_TENDENCIA = ["Decreciente", "Estable", "Creciente"]
 TIPOS_CREDITO_CONOCIDOS = ["4", "6", "9", "10"]  # 7 y 68 (3 registros) pasan a "Otros"
 
-
-
- # Grupos de columnas del ColumnTransformer (despues de todala limpieza)
+# Grupos de columnas del ColumnTransformer (despues de todala limpieza)
 COLUMNAS_NUMERICAS = [
     # originales
     "capital_prestado", "plazo_meses", "edad_cliente", "salario_cliente",
@@ -79,9 +77,10 @@ COLUMNAS_CATEGORICAS = ["tipo_credito", "tipo_laboral"]
 
 COLUMNAS_ORDINALES = ["tendencia_ingresos"]
 
-#-----------------
-#Carga de datos 
-#-----------------
+# -----------------
+# Carga de datos
+# -----------------
+
 
 def obtener_ruta_datos(nombre_archivo: str = NOMBRE_ARCHIVO) -> Path:
     """Busca el CSV en la raíz del repositorio, sin importar desde dónde se ejecute."""
@@ -97,6 +96,7 @@ def obtener_ruta_datos(nombre_archivo: str = NOMBRE_ARCHIVO) -> Path:
         f"No se encontró '{nombre_archivo}'. Debe estar en la raíz del repositorio."
     )
 
+
 def cargar_datos(ruta: Path | None = None) -> pd.DataFrame:
     """Lee el dataset crudo (misma lógica que Cargar_datos.ipynb)."""
     ruta = ruta or obtener_ruta_datos()
@@ -110,58 +110,62 @@ def cargar_datos(ruta: Path | None = None) -> pd.DataFrame:
 se hace una limpieza de datos y se crean atributos derivados. aca no se aprende nada de los datos, solo se transforman.
 por eso se aplica igual en entrenamiento y en evaluacion sin que se tenga riesgo de fuga de informacion.
 
-    1. Valores imposibles a NaN: edad > 100, salario <= 0, puntaje_datacredito fuera de rango y tendencia_ingresos fuera de sus 3 categorias.
+    1. Valores imposibles a NaN: edad > 100, salario <= 0, puntaje_datacredito
+       fuera de rango y tendencia_ingresos fuera de sus 3 categorias.
     2. Agrupa los tipos de credito poco frecuentes en "Otros".
-    3. Crea los atributos derivados del EDA (indicadores, ratios y fecha).
+    3. Crea los atributos derivados   del EDA (indicadores, ratios y fecha).
     4. Aplica log1p a los montos.
     5. Elimina las variables irrelevantes.
 
 
 """
+
+
 class LimpiezaYAtributos(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         return self
+
     def transform(self, X):
         df = X.copy()
 
- #1 valores imposibles a NaN
+        # 1 valores imposibles a NaN
         df["tendencia_ingresos"] = df["tendencia_ingresos"].where(
             df["tendencia_ingresos"].isin(CATEGORIAS_TENDENCIA), np.nan
         ).astype(object)
- 
+
         edad = pd.to_numeric(df["edad_cliente"], errors="coerce")
         df["edad_desconocida"] = (edad.isna() | (edad > 100)).astype(int)
         df["edad_cliente"] = edad.where(edad.between(18, 100))
 
         salario = pd.to_numeric(df["salario_cliente"], errors="coerce")
         df["salario_cliente"] = salario.where(salario > 0)
- 
+
         puntaje = pd.to_numeric(df["puntaje_datacredito"], errors="coerce")
         df["puntaje_datacredito"] = puntaje.where((puntaje == 0) | puntaje.between(150, 950))
 
-#2 tipo de credito como categoria agrupando estos como los menos frecuentes en "Otros" 
-        
+# 2 tipo de credito como categoria agrupando estos como los menos frecuentes en "Otros"
+
         tipo = df["tipo_credito"].astype(str)
         df["tipo_credito"] = tipo.where(tipo.isin(TIPOS_CREDITO_CONOCIDOS), "Otros").astype(object)
         df["tipo_laboral"] = df["tipo_laboral"].astype(object)
 
-#3 atributos derivados del EDA (indicadores, ratios y fecha)
+# 3 atributos derivados del EDA (indicadores, ratios y fecha)
 
         fecha = pd.to_datetime(df["fecha_prestamo"], errors="coerce")
         salario = df["salario_cliente"].astype(float)
         ingreso_buro = df["promedio_ingresos_datacredito"].replace(0, np.nan)
- 
+
         df["tiene_mora"] = (df["saldo_mora"].fillna(0) > 0).astype(int)
         df["sin_info_datacredito"] = df["promedio_ingresos_datacredito"].isna().astype(int)
         df["sin_historial_datacredito"] = (df["puntaje_datacredito"] == 0).astype(int)
-        df["fin_de_semana"] = (fecha.dt.dayofweek >= 5).astype(int) 
+        df["fin_de_semana"] = (fecha.dt.dayofweek >= 5).astype(int)
 
         df["cuota_salario"] = df["cuota_pactada"] / salario
         df["endeudamiento"] = df["total_otros_prestamos"] / salario
         df["capital_salario"] = df["capital_prestado"] / salario
         df["cuota_ingreso_datacredito"] = df["cuota_pactada"] / ingreso_buro
- 
+
         df["mes_prestamo"] = fecha.dt.month
         df["dia_semana"] = fecha.dt.dayofweek
         df["total_creditos_sectores"] = (
@@ -169,18 +173,19 @@ class LimpiezaYAtributos(BaseEstimator, TransformerMixin):
             + df["creditos_sectorReal"]
         )
 
-#4 log1p a montos (los negativos si llega, se dejan en 0)
-         
+# 4 log1p a montos (los negativos si llega, se dejan en 0)
+
         for col in VARIABLES_MONTO:
             df[col] = np.log1p(pd.to_numeric(df[col], errors="coerce").clip(lower=0))
-   
-#5 eliminar variables irrelevantes y la viene incluida 
+
+# 5 eliminar variables irrelevantes y la viene incluida
 
         df = df.drop(columns=VARIABLES_ELIMINAR + [VARIABLE_OBJETIVO], errors="ignore")
         return df[COLUMNAS_NUMERICAS + COLUMNAS_CATEGORICAS + COLUMNAS_ORDINALES]
- 
+
     def get_feature_names_out(self, input_features=None):
         return np.array(COLUMNAS_NUMERICAS + COLUMNAS_CATEGORICAS + COLUMNAS_ORDINALES)
+
 
 class Winsorizador(OneToOneFeatureMixin, BaseEstimator, TransformerMixin):
     """
@@ -192,7 +197,7 @@ class Winsorizador(OneToOneFeatureMixin, BaseEstimator, TransformerMixin):
     def __init__(self, inferior: float = 0.01, superior: float = 0.99):
         self.inferior = inferior
         self.superior = superior
- 
+
     def fit(self, X, y=None):
         if hasattr(X, "columns"):
             self.feature_names_in_ = np.asarray(X.columns, dtype=object)
@@ -212,7 +217,7 @@ class Winsorizador(OneToOneFeatureMixin, BaseEstimator, TransformerMixin):
         return np.clip(np.asarray(X, dtype=float), self.limite_inf_, self.limite_sup_)
 
 
-#pipeline de preprocesamiento 
+# pipeline de preprocesamiento
 
 def construir_column_transformer() -> ColumnTransformer:
     """ColumnTransformer con las tres ramas: numeric, categoric y categoric ordinales."""
@@ -235,8 +240,8 @@ def construir_column_transformer() -> ColumnTransformer:
         ("categoric", categoric, COLUMNAS_CATEGORICAS),
         ("categoric_ordinales", categoric_ordinales, COLUMNAS_ORDINALES),
     ], verbose_feature_names_out=False)
- 
- 
+
+
 def construir_preprocesador() -> Pipeline:
     """Limpieza + ColumnTransformer. Se combina con cada modelo en el entrenamiento."""
     return Pipeline([
@@ -245,26 +250,26 @@ def construir_preprocesador() -> Pipeline:
     ])
 
 
-#funcion principal de la etapa de feature engineering
+# funcion principal de la etapa de feature engineering
 
 def ft_engineering(df: pd.DataFrame | None = None, test_size: float = TEST_SIZE,
                    random_state: int = RANDOM_STATE):
-
     """
-    genera los conjuntos de entrenamiento y evaluacion, y devuelve el preprocesador sin ajustar. 
-        
+    genera los conjuntos de entrenamiento y evaluacion, y devuelve el preprocesador sin ajustar.
+
     """
     df = cargar_datos() if df is None else df.copy()
     df = df.drop_duplicates()
- 
+
     X = df.drop(columns=[VARIABLE_OBJETIVO])
     y = df[VARIABLE_OBJETIVO].astype(int)
- 
+
     # stratify mantiene la proporción 95 / 5 en ambos conjuntos
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, stratify=y, random_state=random_state
     )
     return X_train, X_test, y_train, y_test, construir_preprocesador()
+
 
 def obtener_datos_transformados(df: pd.DataFrame | None = None):
     """Devuelve X_train y X_test ya transformados (útil para revisar el resultado)."""
@@ -273,11 +278,10 @@ def obtener_datos_transformados(df: pd.DataFrame | None = None):
     X_train_t = preprocesador.fit_transform(X_train)  # se ajusta SOLO con entrenamiento
     X_test_t = preprocesador.transform(X_test)
     return X_train_t, X_test_t, y_train, y_test, preprocesador
- 
- 
+
+
 if __name__ == "__main__":
     X_train_t, X_test_t, y_train, y_test, _ = obtener_datos_transformados()
-
 
     print("=== Conjuntos resultantes ===")
     print(f"X_train: {X_train_t.shape} | X_test: {X_test_t.shape}")
@@ -288,7 +292,3 @@ if __name__ == "__main__":
     print(list(X_train_t.columns))
     print("\nPrimeras filas de X_train transformado:")
     print(X_train_t.head().round(3).to_string())
-
-
-
-

@@ -9,7 +9,7 @@ clasificacion y escoger el mejor segun tres criterios: consistency, performance 
     - Consistency  : que tan estable es entre particiones de validación cruzada y
                      cuanto sobreajusta (diferencia entre entrenamiento y validacion).
     - Scalability  : cuanto tarda en entrenar y en predecir, y cuánto pesa el modelo.
- 
+
 Modelos evaluados:
     1. Regresion logistica   (equivalente de la regresion lineal para un objetivo 0/1)
     2. Arbol de decision
@@ -23,10 +23,10 @@ import json
 import time
 import warnings
 from pathlib import Path
- 
+
 import joblib
 import matplotlib
- 
+
 matplotlib.use("Agg")  # guarda los gráficos en archivos sin abrir ventanas
 import matplotlib.pyplot as plt
 import numpy as np
@@ -46,30 +46,30 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.tree import DecisionTreeClassifier
- 
+
 from ft_eng import RANDOM_STATE, construir_preprocesador, ft_engineering
- 
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-#-----------------------
-#configuracion 
-#-----------------------
+# -----------------------
+# configuracion
+# -----------------------
 
 RAIZ = Path(__file__).resolve().parent.parent
 DIR_MODELOS = RAIZ / "modelos"
 DIR_RESULTADOS = RAIZ / "resultados"
- 
+
 N_FOLDS = 5
 CV = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=RANDOM_STATE)
- 
+
 # Clase de interes: 0 = no pago a tiempo (el riesgo que queremos detectar)
 CLASE_RIESGO = 0
 
 # Pesos de cada criterio en el puntaje final
 PESOS = {"performance": 0.5, "consistency": 0.3, "scalability": 0.2}
- 
-# Modelos y sus de hiperparametros 
+
+# Modelos y sus de hiperparametros
 MODELOS = {
     "Regresión logística": (
         LogisticRegression(class_weight="balanced", max_iter=2000),
@@ -94,14 +94,15 @@ MODELOS = {
     ),
 }
 
-#----------------------
-#funciones reutilizables
-#----------------------
+# ----------------------
+# funciones reutilizables
+# ----------------------
+
 
 def summarize_classification(y_true, y_pred, y_proba_pago) -> dict:
     """
     Resume el desempeño de un clasificador.
- 
+
     y_proba_pago es la probabilidad de la clase 1 (pago a tiempo). Las metricas de
     precision / recall / F1 se calculan para la clase 0 (no pago), que es la de riesgo.
     """
@@ -120,33 +121,34 @@ def summarize_classification(y_true, y_pred, y_proba_pago) -> dict:
 def build_model(nombre: str, estimador, grilla: dict, X_train, y_train) -> dict:
     """
     Construye y entrena un modelo completo:
- 
+
     1. Pipeline = preprocesamiento de ft_eng + estimador.
     2. GridSearchCV elige los hiperparámetros con ROC-AUC (no depende del umbral).
     3. TunedThresholdClassifierCV ajusta el umbral de decisión para maximizar la
        balanced accuracy. Con clases 95/5 el umbral de 0,5 casi nunca predice
        "no paga" (sobre todo en KNN y MLP, que no tienen class_weight).
- 
+
     Devuelve el modelo final y los datos de tiempo y busqueda.
     """
     pipeline = Pipeline([("preprocesamiento", construir_preprocesador()), ("modelo", estimador)])
- 
+
     busqueda = GridSearchCV(pipeline, grilla, scoring="roc_auc", cv=CV, n_jobs=-1)
     busqueda.fit(X_train, y_train)
- 
+
     modelo = TunedThresholdClassifierCV(
         busqueda.best_estimator_, scoring="balanced_accuracy", cv=CV, n_jobs=-1
     )
     inicio = time.perf_counter()
     modelo.fit(X_train, y_train)
     tiempo_entrenamiento = time.perf_counter() - inicio
- 
+
     return {
         "nombre": nombre,
         "modelo": modelo,
         "mejores_parametros": {k.replace("modelo__", ""): v for k, v in busqueda.best_params_.items()},
         "tiempo_entrenamiento_s": tiempo_entrenamiento,
     }
+
 
 def evaluar_consistencia(modelo, X_train, y_train) -> dict:
     """Validación cruzada del modelo final: media, desviación y sobreajuste."""
@@ -162,6 +164,7 @@ def evaluar_consistencia(modelo, X_train, y_train) -> dict:
         "cv_roc_auc_folds": cv["test_roc_auc"],
     }
 
+
 def evaluar_escalabilidad(modelo, X_test) -> dict:
     """Tiempo de predicción por cada 1.000 registros y tamaño del modelo serializado."""
     repeticiones = 5
@@ -176,6 +179,7 @@ def evaluar_escalabilidad(modelo, X_test) -> dict:
         "tamano_modelo_mb": buffer.getbuffer().nbytes / 1024 ** 2,
     }
 
+
 def _normalizar(serie: pd.Series, mayor_es_mejor: bool = True) -> pd.Series:
     """Escala a 0–1 entre los modelos (1 = el mejor)."""
     rango = serie.max() - serie.min()
@@ -183,8 +187,8 @@ def _normalizar(serie: pd.Series, mayor_es_mejor: bool = True) -> pd.Series:
         return pd.Series(1.0, index=serie.index)
     norm = (serie - serie.min()) / rango
     return norm if mayor_es_mejor else 1 - norm
- 
- 
+
+
 def seleccionar_mejor_modelo(tabla: pd.DataFrame) -> pd.DataFrame:
     """Calcula un puntaje 0–1 por criterio y un puntaje final ponderado."""
     tabla = tabla.copy()
@@ -205,9 +209,9 @@ def seleccionar_mejor_modelo(tabla: pd.DataFrame) -> pd.DataFrame:
     return tabla.sort_values("score_final", ascending=False)
 
 
-#----------------------
-#graficos comparativos
-#----------------------
+# ----------------------
+# graficos comparativos
+# ----------------------
 
 def graficar_comparacion_metricas(tabla: pd.DataFrame, ruta: Path):
     metricas = ["test_roc_auc", "test_pr_auc_no_pago", "test_balanced_accuracy",
@@ -285,7 +289,7 @@ def graficar_escalabilidad(tabla: pd.DataFrame, ruta: Path):
     plt.suptitle("Escalabilidad (escala logarítmica, menor es mejor)")
     plt.tight_layout()
     plt.savefig(ruta, dpi=120)
-    plt.close() 
+    plt.close()
 
 
 def graficar_puntajes(tabla: pd.DataFrame, ruta: Path):
@@ -300,30 +304,31 @@ def graficar_puntajes(tabla: pd.DataFrame, ruta: Path):
     plt.savefig(ruta, dpi=120)
     plt.close()
 
-#----------------------
-#flujo principal
-#----------------------
+# ----------------------
+# flujo principal
+# ----------------------
+
 
 def entrenar_y_evaluar():
     DIR_MODELOS.mkdir(exist_ok=True)
     DIR_RESULTADOS.mkdir(exist_ok=True)
- 
+
     X_train, X_test, y_train, y_test, _ = ft_engineering()
     print(f"Entrenamiento: {X_train.shape} | Evaluación: {X_test.shape}\n")
- 
+
     resultados, filas = {}, []
     for nombre, (estimador, grilla) in MODELOS.items():
         print(f"Entrenando {nombre}...")
         r = build_model(nombre, estimador, grilla, X_train, y_train)
         modelo = r["modelo"]
- 
+
         # Performance en entrenamiento y evaluación
         m_train = summarize_classification(y_train, modelo.predict(X_train), modelo.predict_proba(X_train)[:, 1])
         m_test = summarize_classification(y_test, modelo.predict(X_test), modelo.predict_proba(X_test)[:, 1])
         r.update(evaluar_consistencia(modelo, X_train, y_train))
         r.update(evaluar_escalabilidad(modelo, X_test))
         resultados[nombre] = r
- 
+
         filas.append({
             "modelo": nombre,
             **{f"test_{k}": v for k, v in m_test.items()},
@@ -334,11 +339,11 @@ def entrenar_y_evaluar():
             "mejores_parametros": str(r["mejores_parametros"]),
         })
         print(f"  ROC-AUC test = {m_test['roc_auc']:.3f} | recall no pago = {m_test['recall_no_pago']:.3f}")
- 
+
     tabla = seleccionar_mejor_modelo(pd.DataFrame(filas).set_index("modelo"))
     mejor_nombre = tabla.index[0]
     mejor_modelo = resultados[mejor_nombre]["modelo"]
- 
+
     # tabla resumen de resultados
     tabla.round(4).to_csv(DIR_RESULTADOS / "tabla_resumen.csv", encoding="utf-8-sig")
     columnas_resumen = ["test_roc_auc", "test_pr_auc_no_pago", "test_balanced_accuracy",
@@ -346,7 +351,7 @@ def entrenar_y_evaluar():
                         "cv_roc_auc_std", "sobreajuste_auc", "tiempo_entrenamiento_s",
                         "tiempo_prediccion_ms_x1000", "score_performance", "score_consistency",
                         "score_scalability", "score_final"]
- 
+
     # graficos comparativos
     graficar_comparacion_metricas(tabla, DIR_RESULTADOS / "comparacion_metricas.png")
     graficar_curvas(resultados, X_test, y_test, DIR_RESULTADOS / "curvas_roc_pr.png")
@@ -354,7 +359,7 @@ def entrenar_y_evaluar():
     graficar_consistencia(resultados, DIR_RESULTADOS / "consistencia_cv.png")
     graficar_escalabilidad(tabla, DIR_RESULTADOS / "escalabilidad.png")
     graficar_puntajes(tabla, DIR_RESULTADOS / "puntajes_seleccion.png")
- 
+
     # guardar el mejor modelo y su metadata (los usan model_deploy.py y model_monitoring.py)
     joblib.dump(mejor_modelo, DIR_MODELOS / "mejor_modelo.joblib")
     metadata = {
@@ -370,14 +375,14 @@ def entrenar_y_evaluar():
     (DIR_MODELOS / "metadata_mejor_modelo.json").write_text(
         json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8"
     )
- 
+
     print("\n=== Tabla resumen de evaluacion ===")
     print(tabla[columnas_resumen].round(3).to_string())
     print(f"\nMejor modelo: {mejor_nombre} (score final = {tabla.loc[mejor_nombre, 'score_final']:.3f})")
     print(f"Guardado en: {DIR_MODELOS / 'mejor_modelo.joblib'}")
     print(f"Graficos y tabla en: {DIR_RESULTADOS}")
     return mejor_modelo, tabla
- 
- 
+
+
 if __name__ == "__main__":
     entrenar_y_evaluar()

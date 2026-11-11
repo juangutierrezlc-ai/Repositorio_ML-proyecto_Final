@@ -329,6 +329,3 @@ with tabs[5]:
                      width="stretch")
         st.download_button("Descargar predicciones", resultado.to_csv(index=False).encode("utf-8"),
                            "predicciones.csv", "text/csv")
-
-
-
