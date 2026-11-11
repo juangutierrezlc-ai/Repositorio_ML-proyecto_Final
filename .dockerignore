@@ -1,0 +1,21 @@
+# Lo que NO debe entrar a la imagen
+venv/
+.venv*/
+.git/
+.github/
+.vscode/
+**/__pycache__/
+**/.ipynb_checkpoints/
+*.ipynb
+tests/
+reports/
+resultados/
+monitoreo/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+Jenkinsfile
+sonar-project.properties
+*.bat
+*.md

@@ -1,0 +1,28 @@
+# Levanta la API y la app de monitoreo con la misma imagen.
+#   docker compose up --build
+# API:        http://localhost:8000/docs
+# Monitoreo:  http://localhost:8501
+services:
+  api:
+    build: .
+    image: credito-ml:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - monitoreo:/app/monitoreo   # las predicciones de la API quedan en la tabla de monitoreo
+
+  monitoreo:
+    image: credito-ml:latest
+    depends_on:
+      - api
+    command: ["streamlit", "run", "mlops_pipeline/app_monitoreo.py",
+              "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true"]
+    ports:
+      - "8501:8501"
+    volumes:
+      - monitoreo:/app/monitoreo
+    healthcheck:
+      disable: true
+
+volumes:
+  monitoreo:
